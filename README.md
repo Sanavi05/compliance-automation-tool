@@ -4,7 +4,7 @@
 
 A digital solution that automates parts of the compliance process for FinTech companies, making KYC (Know Your Customer) and AML (Anti-Money Laundering) verification faster, safer, and more efficient.
 
-## 🎯 Overview
+##  Overview
 
 FinTech companies are required to follow strict regulations like Know Your Customer (KYC) and Anti-Money Laundering (AML), which can be time-consuming and costly when done manually. This tool automates key compliance processes including:
 
@@ -13,7 +13,7 @@ FinTech companies are required to follow strict regulations like Know Your Custo
 - **AML Rule Engine**: Flags suspicious patterns (large/unusual transfers, rapid movement of funds)
 - **Compliance Dashboard**: Track verification and flagged cases
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 ### **Frontend**
 - React.js
@@ -50,7 +50,7 @@ FinTech companies are required to follow strict regulations like Know Your Custo
 - AWS S3 (boto3)
 - Local filesystem (development)
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 compliance-automation-tool/
@@ -119,7 +119,7 @@ compliance-automation-tool/
 └── README.md
 ```
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
@@ -216,7 +216,7 @@ AWS_S3_BUCKET=your-bucket-name
 REACT_APP_API_URL=http://localhost:5000/api
 ```
 
-## 🏃 Running the Application
+##  Running the Application
 
 ### Development Mode
 
@@ -293,7 +293,7 @@ docker-compose up --build
 docker-compose down
 ```
 
-## 🧪 Testing
+##  Testing
 
 ### Backend Tests
 
@@ -322,7 +322,7 @@ npm test
 yarn test
 ```
 
-## 📚 API Documentation
+##  API Documentation
 
 Once the backend is running, visit:
 - Swagger UI: `http://localhost:5000/api/docs`
@@ -341,7 +341,7 @@ GET    /api/aml/flagged            - Get flagged cases
 GET    /api/dashboard/stats        - Get dashboard statistics
 ```
 
-## 📦 Deployment
+##  Deployment
 
 ### Deploy Backend (Example:  Railway)
 
@@ -366,7 +366,7 @@ cd frontend
 vercel
 ```
 
-## 🔧 Configuration
+##  Configuration
 
 ### Database Migrations
 
@@ -396,7 +396,7 @@ npm install package-name
 yarn add package-name
 ```
 
-## 📝 Features Roadmap
+##  Features Roadmap
 
 - [x] Basic project structure
 - [ ] User authentication (JWT)
@@ -409,7 +409,7 @@ yarn add package-name
 - [ ] Audit logs
 - [ ] Advanced ML-based fraud detection
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions are welcome! Please follow these steps:
 
@@ -419,18 +419,18 @@ Contributions are welcome! Please follow these steps:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 👤 Contact
+##  Contact
 
 **Sanavi05**
 - GitHub: [@Sanavi05](https://github.com/Sanavi05)
 
 For questions or feedback, please open an issue in this repository.
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - Flask documentation
 - React documentation
