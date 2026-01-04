@@ -3,8 +3,12 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 import crud
 from database import get_db
+from kyc_routes import kyc_bp
 
 app = FastAPI()
+
+# Register KYC blueprint
+app.include_router(kyc_bp)
 
 @app.get("/health")
 def health():
