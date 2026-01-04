@@ -699,9 +699,6 @@ pip install pillow-simd
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Contributors
-
-- Sanavi05 - Initial work and maintenance
 
 ## Acknowledgments
 
