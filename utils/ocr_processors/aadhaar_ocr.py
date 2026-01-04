@@ -187,7 +187,7 @@ class AadhaarOCR:
             
             # Perform OCR with English and Hindi and get confidence in one call
             custom_config = r'--oem 3 --psm 6'
-            details = pytesseract.image_to_data(processed_img, lang='eng+hin', output_type=pytesseract.Output.DICT)
+            details = pytesseract.image_to_data(processed_img, lang='eng+hin', config=custom_config, output_type=pytesseract.Output.DICT)
             
             # Extract text from details
             text = ' '.join([str(word) for word in details['text'] if word])
