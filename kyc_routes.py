@@ -1,4 +1,5 @@
 import os
+import logging
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
@@ -8,6 +9,9 @@ from database import get_db
 from auth import get_current_user
 from kyc_service import KYCService
 from kyc_document import KYCDocument
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Configuration
 KYC_UPLOAD_FOLDER = 'uploads/kyc'
@@ -305,8 +309,8 @@ async def resubmit_document(
         if os.path.exists(existing_doc.file_path):
             try:
                 os.remove(existing_doc.file_path)
-            except:
-                pass
+            except OSError as e:
+                logger.warning(f"Could not delete old file: {e}")
         
         # Delete old document record
         db.delete(existing_doc)

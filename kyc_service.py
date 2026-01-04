@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 from difflib import SequenceMatcher
+import logging
 from sqlalchemy.orm import Session
 
 from kyc_document import KYCDocument
@@ -10,6 +11,9 @@ from utils.ocr_processors.pan_ocr import PANOCR
 from utils.ocr_processors.face_detector import FaceDetector
 from utils.validators.aadhaar_validator import AadhaarValidator
 from utils.validators.pan_validator import PANValidator
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class KYCService:
@@ -231,7 +235,7 @@ class KYCService:
             
         except Exception as e:
             db.rollback()
-            print(f"Error updating KYC verification status: {e}")
+            logger.error(f"Error updating KYC verification status: {e}")
     
     def cross_validate_documents(self, db: Session, user_id: str):
         """Compare name and DOB across Aadhaar and PAN

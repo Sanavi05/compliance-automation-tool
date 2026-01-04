@@ -1,7 +1,11 @@
 import cv2
 import face_recognition
 import numpy as np
+import logging
 from PIL import Image
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class FaceDetector:
@@ -78,7 +82,7 @@ class FaceDetector:
             return face_encodings[0]
             
         except Exception as e:
-            print(f"Error extracting face encoding: {e}")
+            logger.error(f"Error extracting face encoding: {e}")
             return None
     
     def compare_faces(self, image1_path, image2_path, tolerance=0.6):

@@ -2,7 +2,11 @@ import cv2
 import pytesseract
 import re
 import numpy as np
+import logging
 from PIL import Image
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class AadhaarOCR:
@@ -43,7 +47,7 @@ class AadhaarOCR:
             
             return denoised
         except Exception as e:
-            print(f"Error preprocessing image: {e}")
+            logger.error(f"Error preprocessing image: {e}")
             # Return original image if preprocessing fails
             img = cv2.imread(image_path)
             return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if img is not None else None
@@ -181,12 +185,14 @@ class AadhaarOCR:
                     'confidence': 0.0
                 }
             
-            # Perform OCR with English and Hindi
+            # Perform OCR with English and Hindi and get confidence in one call
             custom_config = r'--oem 3 --psm 6'
-            text = pytesseract.image_to_string(processed_img, lang='eng+hin', config=custom_config)
+            details = pytesseract.image_to_data(processed_img, lang='eng+hin', output_type=pytesseract.Output.DICT)
+            
+            # Extract text from details
+            text = ' '.join([str(word) for word in details['text'] if word])
             
             # Get confidence score
-            details = pytesseract.image_to_data(processed_img, lang='eng+hin', output_type=pytesseract.Output.DICT)
             confidences = [int(conf) for conf in details['conf'] if int(conf) > 0]
             avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
             
