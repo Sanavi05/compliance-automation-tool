@@ -1,15 +1,26 @@
-# AML Model API
+# Compliance Automation Tool
 
-A FastAPI-based Anti-Money Laundering (AML) detection system that provides RESTful API endpoints for monitoring transactions, analyzing risk levels, and managing alerts.
+A comprehensive FastAPI-based compliance automation system with Anti-Money Laundering (AML) detection and Know Your Customer (KYC) verification capabilities.
 
 ## Features
 
+### AML (Anti-Money Laundering)
 - **Dashboard Summary**: Get overview statistics of transactions and alerts
 - **Risk Distribution**: View distribution of transactions by risk level
 - **Transaction Filtering**: Filter transactions by risk level (LOW, MEDIUM, HIGH, CRITICAL)
 - **Transaction Details**: Get detailed information about specific transactions
 - **User Risk Profiles**: View risk profiles for individual users
 - **Alert Management**: View and manage AML alerts
+
+### KYC (Know Your Customer) ✨ NEW
+- **Document Upload**: Support for Photo, Aadhaar Card, and PAN Card
+- **OCR Processing**: Automated data extraction from documents
+- **Document Validation**: Verhoeff checksum for Aadhaar, PAN format validation
+- **Face Matching**: Compare uploaded photo with document photo
+- **Cross-Validation**: Verify consistency across documents
+- **Verification Workflow**: Complete KYC status tracking
+
+For detailed KYC documentation, see [KYC_README.md](KYC_README.md).
 
 ## Tech Stack
 

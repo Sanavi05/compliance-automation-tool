@@ -53,3 +53,9 @@ class AMLAlert(Base):
     reason = Column(Text)
     status = Column(Text, default="OPEN")
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
+
+
+# Import KYC models
+from kyc_document import KYCDocument
+from kyc_verification import KYCVerification
+

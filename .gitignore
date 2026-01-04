@@ -43,3 +43,5 @@ Thumbs.db
 # Data files (if large)
 # fraud_detection_dataset.csv
 
+# Uploads
+uploads/
