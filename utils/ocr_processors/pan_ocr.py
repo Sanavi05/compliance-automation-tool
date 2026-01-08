@@ -61,14 +61,78 @@ class PANOCR:
         Returns:
             PAN number or None
         """
-        # Pattern: 5 letters, 4 digits, 1 letter
-        pattern = r'\b[A-Z]{5}[0-9]{4}[A-Z]\b'
-        matches = re.findall(pattern, text.upper())
+        # Clean text - fix common OCR errors
+        text_upper = text.upper()
+        # Replace common OCR mistakes: 0->O, 1->I, 5->S (but be careful with digits)
+        # We'll try both original and cleaned versions
         
-        if matches:
-            return matches[0]
+        # Pattern: 5 letters, 4 digits, 1 letter
+        pattern = r'\b[A-Z0-9]{5}[0-9]{4}[A-Z0-9]\b'
+        matches = re.findall(pattern, text_upper)
+        
+        for match in matches:
+            # Try to fix OCR errors in the match
+            # First 5 should be letters (fix 0->O, 1->I)
+            first_five = match[:5]
+            middle_four = match[5:9]
+            last_one = match[9]
+            
+            # Fix common OCR errors
+            first_five = first_five.replace('0', 'O').replace('1', 'I')
+            last_one = last_one.replace('0', 'O').replace('1', 'I')
+            
+            # Check if it's valid PAN format
+            if (first_five.isalpha() and len(first_five) == 5 and
+                middle_four.isdigit() and len(middle_four) == 4 and
+                last_one.isalpha() and len(last_one) == 1):
+                return first_five + middle_four + last_one
+        
+        # Try strict pattern on cleaned text
+        pattern_strict = r'\b[A-Z]{5}[0-9]{4}[A-Z]\b'
+        matches_strict = re.findall(pattern_strict, text_upper)
+        if matches_strict:
+            return matches_strict[0]
         
         return None
+    
+    def _clean_name(self, name):
+        """Clean and normalize name extracted from OCR
+        
+        Args:
+            name: Raw name string
+            
+        Returns:
+            Cleaned name string
+        """
+        if not name:
+            return None
+        
+        # Remove special characters except spaces
+        name = re.sub(r'[^\w\s]', ' ', name)
+        name = re.sub(r'\s+', ' ', name)
+        name = name.strip()
+        
+        # Fix common OCR mistakes
+        # In names, 0 is often O, 1 is often I
+        cleaned = []
+        for char in name:
+            if char == '0' and (not cleaned or cleaned[-1].isalpha()):
+                cleaned.append('O')
+            elif char == '1' and (not cleaned or cleaned[-1].isalpha()):
+                cleaned.append('I')
+            elif char == '5' and (not cleaned or cleaned[-1].isalpha()):
+                cleaned.append('S')
+            else:
+                cleaned.append(char)
+        
+        name = ''.join(cleaned)
+        name = re.sub(r'\s+', ' ', name).strip()
+        
+        # Must have at least 3 letters
+        if sum(1 for c in name if c.isalpha()) < 3:
+            return None
+        
+        return name if len(name) > 2 else None
     
     def extract_name(self, text):
         """Extract name in capital letters
@@ -79,6 +143,10 @@ class PANOCR:
         Returns:
             Extracted name or None
         """
+        # Clean text first
+        text = re.sub(r'[^\w\s]', ' ', text)
+        text = re.sub(r'\s+', ' ', text)
+        
         lines = text.split('\n')
         
         # Look for lines with name
@@ -93,11 +161,13 @@ class PANOCR:
             if 'name' in line.lower():
                 if ':' in line:
                     name = line.split(':', 1)[1].strip()
-                    if name and len(name) > 2:
+                    name = self._clean_name(name)
+                    if name:
                         return name
                 elif i + 1 < len(lines):
                     name = lines[i + 1].strip()
-                    if name and len(name) > 2:
+                    name = self._clean_name(name)
+                    if name:
                         return name
         
         # Fallback: look for lines with mostly uppercase letters
@@ -108,8 +178,10 @@ class PANOCR:
                 upper_count = sum(1 for c in line if c.isupper())
                 if upper_count / len(line) > 0.6:
                     # Skip if it contains common keywords
-                    if not any(keyword in line.upper() for keyword in ['INCOME', 'TAX', 'INDIA', 'GOVERNMENT', 'PERMANENT', 'ACCOUNT', 'NUMBER']):
-                        return line
+                    if not any(keyword in line.upper() for keyword in ['INCOME', 'TAX', 'INDIA', 'GOVERNMENT', 'PERMANENT', 'ACCOUNT', 'NUMBER', 'PAN', 'CARD']):
+                        name = self._clean_name(line)
+                        if name:
+                            return name
         
         return None
     
@@ -122,6 +194,10 @@ class PANOCR:
         Returns:
             Father's name or None
         """
+        # Clean text
+        text = re.sub(r'[^\w\s]', ' ', text)
+        text = re.sub(r'\s+', ' ', text)
+        
         lines = text.split('\n')
         
         for i, line in enumerate(lines):
@@ -131,11 +207,13 @@ class PANOCR:
             if 'father' in line_lower:
                 if ':' in line:
                     name = line.split(':', 1)[1].strip()
-                    if name and len(name) > 2:
+                    name = self._clean_name(name)
+                    if name:
                         return name
                 elif i + 1 < len(lines):
                     name = lines[i + 1].strip()
-                    if name and len(name) > 2:
+                    name = self._clean_name(name)
+                    if name:
                         return name
         
         return None
@@ -191,11 +269,23 @@ class PANOCR:
             details = pytesseract.image_to_data(processed_img, lang='eng', config=custom_config, output_type=pytesseract.Output.DICT)
             
             # Extract text from details
-            text = ' '.join([str(word) for word in details['text'] if word])
+            text = ' '.join([str(word) for word in details['text'] if word]).strip()
+            
+            # Check if we got any text
+            if not text or len(text) < 10:
+                logger.warning(f"OCR extracted very little or no text: '{text[:50]}'")
+                return {
+                    'success': False,
+                    'error': 'OCR extracted no readable text. Please ensure the image is clear, well-lit, and contains visible text.',
+                    'raw_text': text,
+                    'confidence': 0.0
+                }
             
             # Get confidence score
             confidences = [int(conf) for conf in details['conf'] if int(conf) > 0]
             avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
+            
+            logger.info(f"PAN OCR extracted text length: {len(text)}, confidence: {avg_confidence:.2f}")
             
             # Extract information
             pan_number = self.extract_pan_number(text)
@@ -214,8 +304,13 @@ class PANOCR:
             }
             
         except Exception as e:
+            error_msg = str(e)
+            logger.error(f"PAN OCR error: {error_msg}")
+            # Check if it's a Tesseract error
+            if 'tesseract' in error_msg.lower() or 'TesseractNotFoundError' in str(type(e)):
+                error_msg = "Tesseract OCR not found. Please install Tesseract OCR and ensure it's in your PATH."
             return {
                 'success': False,
-                'error': str(e),
+                'error': error_msg,
                 'confidence': 0.0
             }

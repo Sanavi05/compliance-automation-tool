@@ -1,9 +1,9 @@
 import os
 import logging
+import re
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from werkzeug.utils import secure_filename
 
 from database import get_db
 from auth import get_current_user
@@ -21,8 +21,31 @@ KYC_ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf'}
 # Initialize router
 kyc_bp = APIRouter(prefix="/api/kyc", tags=["KYC"])
 
-# Initialize KYC service
-kyc_service = KYCService()
+# Initialize KYC service with Tesseract path from config
+from config import TESSERACT_PATH
+import os
+tesseract_path = TESSERACT_PATH if os.path.exists(TESSERACT_PATH) else None
+kyc_service = KYCService(tesseract_path=tesseract_path)
+
+
+def secure_filename(filename: str) -> str:
+    """Secure filename by removing dangerous characters (FastAPI-compatible replacement for werkzeug)
+    
+    Args:
+        filename: Original filename
+        
+    Returns:
+        Sanitized filename
+    """
+    # Remove any path components
+    filename = os.path.basename(filename)
+    # Replace spaces with underscores
+    filename = filename.replace(' ', '_')
+    # Remove any characters that are not alphanumeric, dots, hyphens, or underscores
+    filename = re.sub(r'[^a-zA-Z0-9._-]', '', filename)
+    # Remove leading dots
+    filename = filename.lstrip('.')
+    return filename or 'file'
 
 
 def allowed_file(filename: str) -> bool:
@@ -223,8 +246,11 @@ def trigger_verification(
                 detail="All documents (photo, Aadhaar, PAN) must be uploaded and verified"
             )
         
-        # Trigger verification
-        kyc_service.update_kyc_verification_status(db, current_user, 'photo', True)
+        # All documents are verified, trigger final verification check
+        # This will perform cross-validation and face matching
+        # The update_kyc_verification_status will be called automatically when we check status
+        # But we need to manually trigger it for the last document to ensure all checks run
+        kyc_service.update_kyc_verification_status(db, current_user, 'pan', True)
         
         # Get updated status
         result = kyc_service.get_kyc_status(db, current_user)

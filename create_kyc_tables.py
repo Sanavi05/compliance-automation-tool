@@ -12,11 +12,11 @@ def create_kyc_tables():
     try:
         # Create all tables defined in Base metadata
         Base.metadata.create_all(bind=engine)
-        print("✓ KYC tables created successfully!")
+        print("KYC tables created successfully!")
         print("  - kyc_documents")
         print("  - kyc_verifications")
     except Exception as e:
-        print(f"✗ Error creating KYC tables: {e}")
+        print(f"Error creating KYC tables: {e}")
 
 if __name__ == "__main__":
     print("Creating KYC tables...")

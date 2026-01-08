@@ -93,14 +93,25 @@ class AadhaarValidator:
         if not name:
             return {'valid': False, 'error': 'Name is required'}
         
-        name = name.strip()
+        name = str(name).strip()
         
+        # Must be at least 3 characters
         if len(name) < 3:
             return {'valid': False, 'error': 'Name must be at least 3 characters'}
         
-        # Check if name contains only letters and spaces
-        if not re.match(r'^[a-zA-Z\s]+$', name):
-            return {'valid': False, 'error': 'Name must contain only letters and spaces'}
+        # Clean name - remove special characters that might be OCR errors
+        cleaned_name = re.sub(r'[^\w\s]', '', name)
+        
+        # Must contain at least 3 letters (allow some numbers/OCR artifacts)
+        letter_count = sum(1 for c in cleaned_name if c.isalpha())
+        if letter_count < 3:
+            return {'valid': False, 'error': 'Name must contain at least 3 letters'}
+        
+        # Allow letters, spaces, and some common characters (for names with special chars)
+        if not re.match(r'^[a-zA-Z\s\.\-\']+$', name):
+            # If it has other characters, check if it's mostly letters
+            if letter_count / len(cleaned_name) < 0.7:
+                return {'valid': False, 'error': 'Name must contain mostly letters'}
         
         return {'valid': True}
     

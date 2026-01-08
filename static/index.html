@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYC Verification - Compliance Automation Tool</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>KYC Verification Portal</h1>
+            <div id="auth-section">
+                <div id="login-form" class="auth-form">
+                    <h2>Login</h2>
+                    <input type="text" id="user-id" placeholder="User ID" required>
+                    <input type="password" id="password" placeholder="Password" required>
+                    <button onclick="login()">Login</button>
+                    <p id="auth-error" class="error-message"></p>
+                </div>
+                <div id="user-info" class="user-info" style="display: none;">
+                    <span>Logged in as: <strong id="current-user"></strong></span>
+                    <button onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <main id="main-content" style="display: none;">
+            <div class="kyc-status-section">
+                <h2>KYC Status</h2>
+                <div id="kyc-status" class="status-card">
+                    <p>Loading...</p>
+                </div>
+            </div>
+
+            <div class="upload-section">
+                <h2>Upload Documents</h2>
+                <div class="document-upload">
+                    <div class="upload-card">
+                        <h3>Photo</h3>
+                        <p class="status-badge" id="photo-status">Not Uploaded</p>
+                        <input type="file" id="photo-file" accept="image/*" onchange="previewFile('photo')">
+                        <div id="photo-preview" class="preview"></div>
+                        <button onclick="uploadDocument('photo')" id="photo-upload-btn">Upload Photo</button>
+                    </div>
+
+                    <div class="upload-card">
+                        <h3>Aadhaar Card</h3>
+                        <p class="status-badge" id="aadhaar-status">Not Uploaded</p>
+                        <input type="file" id="aadhaar-file" accept="image/*,.pdf" onchange="previewFile('aadhaar')">
+                        <div id="aadhaar-preview" class="preview"></div>
+                        <button onclick="uploadDocument('aadhaar')" id="aadhaar-upload-btn">Upload Aadhaar</button>
+                    </div>
+
+                    <div class="upload-card">
+                        <h3>PAN Card</h3>
+                        <p class="status-badge" id="pan-status">Not Uploaded</p>
+                        <input type="file" id="pan-file" accept="image/*,.pdf" onchange="previewFile('pan')">
+                        <div id="pan-preview" class="preview"></div>
+                        <button onclick="uploadDocument('pan')" id="pan-upload-btn">Upload PAN</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="documents-section">
+                <h2>Uploaded Documents</h2>
+                <div id="documents-list" class="documents-list">
+                    <p>No documents uploaded yet.</p>
+                </div>
+            </div>
+
+            <div class="actions-section">
+                <button onclick="triggerVerification()" id="verify-btn" class="primary-btn" disabled>Trigger Verification</button>
+                <button onclick="refreshStatus()" class="secondary-btn">Refresh Status</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

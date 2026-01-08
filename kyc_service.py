@@ -11,6 +11,8 @@ from utils.ocr_processors.pan_ocr import PANOCR
 from utils.ocr_processors.face_detector import FaceDetector
 from utils.validators.aadhaar_validator import AadhaarValidator
 from utils.validators.pan_validator import PANValidator
+from utils.pdf_converter import pdf_to_image, is_pdf_file
+from config import TESSERACT_PATH
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -25,8 +27,10 @@ class KYCService:
         Args:
             tesseract_path: Path to tesseract executable (optional)
         """
-        self.aadhaar_ocr = AadhaarOCR(tesseract_path)
-        self.pan_ocr = PANOCR(tesseract_path)
+        # Use provided path, or config path, or None (will use system PATH)
+        tesseract = tesseract_path or (TESSERACT_PATH if os.path.exists(TESSERACT_PATH) else None)
+        self.aadhaar_ocr = AadhaarOCR(tesseract)
+        self.pan_ocr = PANOCR(tesseract)
         self.face_detector = FaceDetector()
         self.aadhaar_validator = AadhaarValidator()
         self.pan_validator = PANValidator()
@@ -72,9 +76,27 @@ class KYCService:
             
             elif document_type == 'aadhaar':
                 # Process Aadhaar card
-                ocr_result = self.aadhaar_ocr.process_document(file_path)
+                # Convert PDF to image if needed
+                actual_file_path = file_path
+                temp_image_path = None
+                ocr_result = None
                 
-                if ocr_result['success']:
+                if is_pdf_file(file_path):
+                    logger.info("Converting PDF to image for OCR")
+                    temp_image_path = pdf_to_image(file_path)
+                    if temp_image_path:
+                        actual_file_path = temp_image_path
+                    else:
+                        verification_status = 'rejected'
+                        verification_notes = 'Failed to convert PDF to image. Please upload an image file (JPG/PNG) instead.'
+                        extracted_data = {'error': 'PDF conversion failed'}
+                        ocr_result = {'success': False}
+                
+                # Process OCR if we haven't already failed
+                if ocr_result is None:
+                    ocr_result = self.aadhaar_ocr.process_document(actual_file_path)
+                
+                if ocr_result.get('success'):
                     extracted_data = {
                         'aadhaar_number': ocr_result.get('aadhaar_number'),
                         'name': ocr_result.get('name'),
@@ -93,38 +115,95 @@ class KYCService:
                     else:
                         verification_status = 'under_review'
                         verification_notes = '; '.join(validation_result['errors'])
-                else:
-                    extracted_data = {'error': ocr_result.get('error', 'OCR processing failed')}
+                elif ocr_result is None:
+                    # OCR was never called (e.g., PDF conversion failed)
                     verification_status = 'rejected'
-                    verification_notes = 'Failed to extract data from Aadhaar card'
+                    verification_notes = 'Document processing failed. Please try uploading a clear image file (JPG/PNG).'
+                    extracted_data = {'error': 'Processing failed'}
+                else:
+                    # OCR failed or returned no data
+                    error_msg = ocr_result.get('error', 'OCR processing failed')
+                    # Include raw text if available for debugging
+                    raw_text = ocr_result.get('raw_text', '')
+                    if raw_text:
+                        logger.info(f"Aadhaar OCR extracted text (but validation failed): {raw_text[:200]}")
+                    extracted_data = {'error': error_msg, 'raw_text': raw_text}
+                    verification_status = 'rejected'
+                    verification_notes = f'OCR failed: {error_msg}. Please ensure the image is clear and readable.'
+                    logger.error(f"Aadhaar OCR failed: {error_msg}. Full result: {ocr_result}")
+                
+                # Clean up temporary image file
+                if temp_image_path and os.path.exists(temp_image_path):
+                    try:
+                        os.remove(temp_image_path)
+                    except Exception as e:
+                        logger.warning(f"Could not delete temp image: {e}")
             
             elif document_type == 'pan':
                 # Process PAN card
-                ocr_result = self.pan_ocr.process_document(file_path)
+                # Convert PDF to image if needed
+                actual_file_path = file_path
+                temp_image_path = None
+                ocr_result = None
                 
-                if ocr_result['success']:
+                if is_pdf_file(file_path):
+                    logger.info("Converting PDF to image for OCR")
+                    temp_image_path = pdf_to_image(file_path)
+                    if temp_image_path:
+                        actual_file_path = temp_image_path
+                    else:
+                        verification_status = 'rejected'
+                        verification_notes = 'Failed to convert PDF to image. Please upload an image file (JPG/PNG) instead.'
+                        extracted_data = {'error': 'PDF conversion failed'}
+                        ocr_result = {'success': False}
+                
+                # Process OCR if we haven't already failed
+                if ocr_result is None:
+                    ocr_result = self.pan_ocr.process_document(actual_file_path)
+                
+                if ocr_result and ocr_result.get('success'):
                     extracted_data = {
                         'pan_number': ocr_result.get('pan_number'),
                         'name': ocr_result.get('name'),
                         'father_name': ocr_result.get('father_name'),
-                        'dob': ocr_result.get('dob')
+                        'dob': ocr_result.get('dob'),
+                        'raw_text': ocr_result.get('raw_text', '')
                     }
                     ocr_confidence = ocr_result.get('confidence', 0.0)
                     
-                    # Validate extracted data
-                    validation_result = self.pan_validator.validate_complete_document(extracted_data)
-                    validation_score = validation_result['score']
-                    
-                    if validation_result['valid']:
-                        is_verified = True
-                        verification_status = 'verified'
+                    # Check if we extracted any meaningful data
+                    if not any([extracted_data.get('pan_number'), extracted_data.get('name'), extracted_data.get('dob')]):
+                        verification_status = 'rejected'
+                        verification_notes = 'OCR completed but could not extract required fields (PAN number, name, or DOB). Please ensure the document is clear and all text is visible.'
+                        logger.warning(f"PAN OCR succeeded but extracted no data. Raw text: {extracted_data.get('raw_text', '')[:200]}")
                     else:
-                        verification_status = 'under_review'
-                        verification_notes = '; '.join(validation_result['errors'])
+                        # Validate extracted data
+                        validation_result = self.pan_validator.validate_complete_document(extracted_data)
+                        validation_score = validation_result['score']
+                        
+                        if validation_result['valid']:
+                            is_verified = True
+                            verification_status = 'verified'
+                        else:
+                            verification_status = 'under_review'
+                            verification_notes = '; '.join(validation_result['errors'])
                 else:
-                    extracted_data = {'error': ocr_result.get('error', 'OCR processing failed')}
+                    error_msg = ocr_result.get('error', 'OCR processing failed')
+                    # Include raw text if available for debugging
+                    raw_text = ocr_result.get('raw_text', '')
+                    if raw_text:
+                        logger.info(f"PAN OCR extracted text (but validation failed): {raw_text[:200]}")
+                    extracted_data = {'error': error_msg, 'raw_text': raw_text}
                     verification_status = 'rejected'
-                    verification_notes = 'Failed to extract data from PAN card'
+                    verification_notes = f'OCR failed: {error_msg}. Please ensure the image is clear and readable.'
+                    logger.error(f"PAN OCR failed: {error_msg}. Full result: {ocr_result}")
+                
+                # Clean up temporary image file
+                if temp_image_path and os.path.exists(temp_image_path):
+                    try:
+                        os.remove(temp_image_path)
+                    except Exception as e:
+                        logger.warning(f"Could not delete temp image: {e}")
             
             # Save to database
             kyc_document = KYCDocument(

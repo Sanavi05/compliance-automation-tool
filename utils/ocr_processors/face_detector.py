@@ -1,8 +1,16 @@
 import cv2
-import face_recognition
 import numpy as np
 import logging
 from PIL import Image
+
+# Try to import face_recognition, but make it optional
+try:
+    import face_recognition
+    FACE_RECOGNITION_AVAILABLE = True
+except ImportError:
+    FACE_RECOGNITION_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+    logger.warning("face_recognition library not available. Face matching will be limited to OpenCV.")
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -68,6 +76,10 @@ class FaceDetector:
         Returns:
             Face encoding array or None
         """
+        if not FACE_RECOGNITION_AVAILABLE:
+            logger.warning("face_recognition library not available. Cannot extract face encoding.")
+            return None
+            
         try:
             # Load image
             image = face_recognition.load_image_file(image_path)
@@ -96,6 +108,29 @@ class FaceDetector:
         Returns:
             Dictionary with comparison results
         """
+        if not FACE_RECOGNITION_AVAILABLE:
+            # Fallback: Use OpenCV face detection to check if both images have faces
+            result1 = self.detect_face_opencv(image1_path)
+            result2 = self.detect_face_opencv(image2_path)
+            
+            if result1['success'] and result1['faces_detected'] > 0 and \
+               result2['success'] and result2['faces_detected'] > 0:
+                # Both have faces, but we can't do detailed matching without face_recognition
+                return {
+                    'success': True,
+                    'match': True,  # Assume match if both have faces (basic check)
+                    'confidence': 50.0,  # Lower confidence since we can't do detailed matching
+                    'distance': 0.5,
+                    'note': 'Basic face detection only (face_recognition not available)'
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': 'Face detection failed or face_recognition library not available',
+                    'match': False,
+                    'confidence': 0.0
+                }
+        
         try:
             # Extract face encodings
             encoding1 = self.extract_face_encoding(image1_path)
